@@ -123,7 +123,7 @@ fn generate_ld(parameters: &[Parameter]) -> u16 {
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
         if let Parameter::Register(Register::V(y)) = parameters[1] {
-            0x5 << 12 | (x as u16) << 8 | (y as u16) << 4
+            0x8 << 12 | (x as u16) << 8 | (y as u16) << 4
         } else if let Parameter::Register(Register::DT) = parameters[1] {
             0xF << 12 | (x as u16) << 8 | 0x07
         } else if let Parameter::Byte(nn) = parameters[1] {
@@ -368,7 +368,7 @@ fn generate_ldk(parameters: &[Parameter]) -> u16 {
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
-        0xF << 12 | (x as u16) << 8 | 0x15
+        0xF << 12 | (x as u16) << 8 | 0x0A
     } else {
         panic!("LDK first parameter must be V[n]");
     }
@@ -380,7 +380,7 @@ fn generate_spr(parameters: &[Parameter]) -> u16 {
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
-        0xF << 12 | (x as u16) | 0x29
+        0xF << 12 | (x as u16) << 8 | 0x29
     } else {
         panic!("SPR first parameter must be V[n]");
     }
@@ -392,7 +392,7 @@ fn generate_bcd(parameters: &[Parameter]) -> u16 {
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
-        0xF << 12 | (x as u16) | 0x33
+        0xF << 12 | (x as u16) << 8 | 0x33
     } else {
         panic!("BCD first parameter must be V[n]");
     }
@@ -404,7 +404,7 @@ fn generate_stn(parameters: &[Parameter]) -> u16 {
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
-        0xF << 12 | (x as u16) | 0x55
+        0xF << 12 | (x as u16) << 8 | 0x55
     } else {
         panic!("STN first parameter must be V[n]");
     }
@@ -416,13 +416,13 @@ fn generate_ldn(parameters: &[Parameter]) -> u16 {
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
-        0xF << 12 | (x as u16) | 0x65
+        0xF << 12 | (x as u16) << 8 | 0x65
     } else {
         panic!("LDN first parameter must be V[n]");
     }
 }
 
-pub fn generate_instruction(instruction: Instruction, parameters: &[Parameter]) -> u16 {
+pub fn generate_instruction(instruction: &Instruction, parameters: &[Parameter]) -> u16 {
     match instruction {
         Instruction::Cls => generate_cls(parameters),
         Instruction::Ret => generate_ret(parameters),
