@@ -1,114 +1,137 @@
 use crate::instruction_generator::{generate_instruction, Instruction, Parameter, Register};
 
-pub fn parse(text: &str) -> Vec<u16> {
+pub fn parse(text: &str) -> Result<Vec<u16>, String> {
     let mut binary = Vec::<u16>::new();
 
+    let mut line_n = 1;
+
     for line in text.lines() {
-        if let Some(bin) = parse_line(line) {
-            binary.push(bin);
+        match parse_line(line) {
+            Ok(line_binary) => {
+                if let Some(bin) = line_binary {
+                    binary.push(bin);
+                }
+            }
+            Err(line_error) => return Err(format!("Error line {line_n} : {line_error}")),
         }
+
+        line_n += 1;
     }
 
-    binary
+    Ok(binary)
 }
 
-fn parse_line(line: &str) -> Option<u16> {
+fn parse_line(line: &str) -> Result<Option<u16>, String> {
     let mut words = line.split_whitespace();
 
     let mut parameters = Vec::<Parameter>::new();
 
     if let Some(instruction_str) = words.next() {
-        let instruction = parse_instruction(instruction_str);
+        match parse_instruction(instruction_str) {
+            Ok(instruction) => {
+                for parameter_str in words {
+                    match parse_parameter(parameter_str) {
+                        Ok(parameter) => {
+                            parameters.push(parameter);
+                        }
 
-        for parameter_str in words {
-            parameters.push(parse_parameter(parameter_str));
+                        Err(error) => return Err(error),
+                    }
+                }
+
+                match generate_instruction(&instruction, &parameters) {
+                    Ok(line_binary) => Ok(Some(line_binary)),
+
+                    Err(line_error) => Err(line_error),
+                }
+            }
+
+            Err(error) => Err(error),
         }
-
-        Some(generate_instruction(&instruction, &parameters))
     } else {
-        None
+        Ok(None)
     }
 }
 
-fn parse_instruction(word: &str) -> Instruction {
+fn parse_instruction(word: &str) -> Result<Instruction, String> {
     match word {
-        "CLS" => Instruction::Cls,
-        "RET" => Instruction::Ret,
-        "JMP" => Instruction::Jmp,
-        "CALL" => Instruction::Call,
-        "SEQ" => Instruction::Seq,
-        "SNE" => Instruction::Sne,
-        "LD" => Instruction::Ld,
-        "ADD" => Instruction::Add,
-        "OR" => Instruction::Or,
-        "AND" => Instruction::And,
-        "XOR" => Instruction::Xor,
-        "SUB" => Instruction::Sub,
-        "SHR" => Instruction::Shr,
-        "SUBN" => Instruction::Subn,
-        "SHL" => Instruction::Shl,
-        "JMPO" => Instruction::Jmpo,
-        "RND" => Instruction::Rnd,
-        "DRW" => Instruction::Drw,
-        "SKP" => Instruction::Skp,
-        "SKNP" => Instruction::Sknp,
-        "LDK" => Instruction::Ldk,
-        "SPR" => Instruction::Spr,
-        "BCD" => Instruction::Bcd,
-        "STN" => Instruction::Stn,
-        "LDN" => Instruction::Ldn,
-        _ => panic!("Unknown instruction name"),
+        "CLS" => Ok(Instruction::Cls),
+        "RET" => Ok(Instruction::Ret),
+        "JMP" => Ok(Instruction::Jmp),
+        "CALL" => Ok(Instruction::Call),
+        "SEQ" => Ok(Instruction::Seq),
+        "SNE" => Ok(Instruction::Sne),
+        "LD" => Ok(Instruction::Ld),
+        "ADD" => Ok(Instruction::Add),
+        "OR" => Ok(Instruction::Or),
+        "AND" => Ok(Instruction::And),
+        "XOR" => Ok(Instruction::Xor),
+        "SUB" => Ok(Instruction::Sub),
+        "SHR" => Ok(Instruction::Shr),
+        "SUBN" => Ok(Instruction::Subn),
+        "SHL" => Ok(Instruction::Shl),
+        "JMPO" => Ok(Instruction::Jmpo),
+        "RND" => Ok(Instruction::Rnd),
+        "DRW" => Ok(Instruction::Drw),
+        "SKP" => Ok(Instruction::Skp),
+        "SKNP" => Ok(Instruction::Sknp),
+        "LDK" => Ok(Instruction::Ldk),
+        "SPR" => Ok(Instruction::Spr),
+        "BCD" => Ok(Instruction::Bcd),
+        "STN" => Ok(Instruction::Stn),
+        "LDN" => Ok(Instruction::Ldn),
+        _ => Err("Unknown instruction name".to_owned()),
     }
 }
 
-fn parse_parameter(word: &str) -> Parameter {
+fn parse_parameter(word: &str) -> Result<Parameter, String> {
     if let Some(n_str) = word.strip_prefix('V') {
         if let Ok(n) = n_str.parse::<u64>() {
             if n < 16 {
-                Parameter::Register(Register::V(n as u8))
+                Ok(Parameter::Register(Register::V(n as u8)))
             } else {
-                panic!("There are only 16 V register");
+                Err("There are only 16 V register".to_owned())
             }
         } else {
-            panic!("Wrong V register name");
+            Err("Wrong V register name".to_owned())
         }
     } else if word == "I" {
-        Parameter::Register(Register::I)
+        Ok(Parameter::Register(Register::I))
     } else if word == "DT" {
-        Parameter::Register(Register::DT)
+        Ok(Parameter::Register(Register::DT))
     } else if word == "ST" {
-        Parameter::Register(Register::ST)
+        Ok(Parameter::Register(Register::ST))
     } else if let Some(n_str) = word.strip_suffix('A') {
         if let Ok(n) = n_str.parse::<u64>() {
             if n < 4096 {
-                Parameter::Address(n as u16)
+                Ok(Parameter::Address(n as u16))
             } else {
-                panic!("Address can only take values up to 4095");
+                Err("Address can only take values up to 4095".to_owned())
             }
         } else {
-            panic!("Can't parse Address");
+            Err("Can't parse Address".to_owned())
         }
     } else if let Some(n_str) = word.strip_suffix('B') {
         if let Ok(n) = n_str.parse::<u64>() {
             if n < 256 {
-                Parameter::Byte(n as u8)
+                Ok(Parameter::Byte(n as u8))
             } else {
-                panic!("Byte can only take values up to 255");
+                Err("Byte can only take values up to 255".to_owned())
             }
         } else {
-            panic!("Can't parse Byte");
+            Err("Can't parse Byte".to_owned())
         }
     } else if let Some(n_str) = word.strip_suffix('N') {
         if let Ok(n) = n_str.parse::<u64>() {
             if n < 16 {
-                Parameter::Nibble(n as u8)
+                Ok(Parameter::Nibble(n as u8))
             } else {
-                panic!("Nibble can only take values up to 15");
+                Err("Nibble can only take values up to 15".to_owned())
             }
         } else {
-            panic!("Can't parse Nibble");
+            Err("Can't parse Nibble".to_owned())
         }
     } else {
-        panic!("Unknown parameter type");
+        Err("Unknown parameter type".to_owned())
     }
 }

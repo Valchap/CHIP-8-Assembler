@@ -40,389 +40,350 @@ pub enum Parameter {
     Nibble(u8),         // 4 bits value
 }
 
-fn generate_cls(parameters: &[Parameter]) -> u16 {
+fn generate_cls(parameters: &[Parameter]) -> Result<u16, String> {
     if !parameters.is_empty() {
-        panic!("CLS takes no parameter");
+        return Err("CLS takes no parameter".to_owned());
     }
-
-    0x00E0
+    Ok(0x00E0)
 }
 
-fn generate_ret(parameters: &[Parameter]) -> u16 {
+fn generate_ret(parameters: &[Parameter]) -> Result<u16, String> {
     if !parameters.is_empty() {
-        panic!("RET takes no parameter");
+        return Err("RET takes no parameter".to_owned());
     }
-
-    0x00EE
+    Ok(0x00EE)
 }
 
-fn generate_jmp(parameters: &[Parameter]) -> u16 {
+fn generate_jmp(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 1 {
-        panic!("JMP takes one parameter");
+        return Err("JMP takes one parameter".to_owned());
     }
 
     if let Parameter::Address(nnn) = parameters[0] {
-        0x1 << 12 | nnn
-    } else {
-        panic!("JMP first parameter must be Address");
+        return Ok(0x1 << 12 | nnn);
     }
+    Err("JMP first parameter must be Address".to_owned())
 }
 
-fn generate_call(parameters: &[Parameter]) -> u16 {
+fn generate_call(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 1 {
-        panic!("CALL takes one parameter")
+        return Err("CALL takes one parameter".to_owned());
     }
 
     if let Parameter::Address(nnn) = parameters[0] {
-        0x2 << 12 | nnn
-    } else {
-        panic!("CALL first parameter must be Address");
+        return Ok(0x2 << 12 | nnn);
     }
+    Err("CALL first parameter must be Address".to_owned())
 }
 
-fn generate_seq(parameters: &[Parameter]) -> u16 {
+fn generate_seq(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 2 {
-        panic!("SEQ takes two parameters");
+        return Err("SEQ takes two parameters".to_owned());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
         if let Parameter::Register(Register::V(y)) = parameters[1] {
-            0x5 << 12 | (x as u16) << 8 | (y as u16) << 4
+            return Ok(0x5 << 12 | (x as u16) << 8 | (y as u16) << 4);
         } else if let Parameter::Byte(nn) = parameters[1] {
-            0x3 << 12 | (x as u16) << 8 | nn as u16
-        } else {
-            panic!("SEQ second parameter must be V[n] or byte")
+            return Ok(0x3 << 12 | (x as u16) << 8 | nn as u16);
         }
-    } else {
-        panic!("SEQ first parameter must be V[n]");
+        return Err("SEQ second parameter must be V[n] or byte".to_owned());
     }
+    Err("SEQ first parameter must be V[n]".to_owned())
 }
 
-fn generate_sne(parameters: &[Parameter]) -> u16 {
+fn generate_sne(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 2 {
-        panic!("SNE takes two parameters");
+        return Err("SNE takes two parameters".to_owned());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
         if let Parameter::Register(Register::V(y)) = parameters[1] {
-            0x9 << 12 | (x as u16) << 8 | (y as u16) << 4
+            return Ok(0x9 << 12 | (x as u16) << 8 | (y as u16) << 4);
         } else if let Parameter::Byte(nn) = parameters[1] {
-            0x4 << 12 | (x as u16) << 8 | nn as u16
-        } else {
-            panic!("SNE second parameter must be V[n] or byte")
+            return Ok(0x4 << 12 | (x as u16) << 8 | nn as u16);
         }
-    } else {
-        panic!("SNE first parameter must be V[n]");
+        return Err("SNE second parameter must be V[n] or byte".to_owned());
     }
+    Err("SNE first parameter must be V[n]".to_owned())
 }
 
-fn generate_ld(parameters: &[Parameter]) -> u16 {
+fn generate_ld(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 2 {
-        panic!("LD takes two parameters");
+        return Err("LD takes two parameters".to_owned());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
         if let Parameter::Register(Register::V(y)) = parameters[1] {
-            0x8 << 12 | (x as u16) << 8 | (y as u16) << 4
+            return Ok(0x8 << 12 | (x as u16) << 8 | (y as u16) << 4);
         } else if let Parameter::Register(Register::DT) = parameters[1] {
-            0xF << 12 | (x as u16) << 8 | 0x07
+            return Ok(0xF << 12 | (x as u16) << 8 | 0x07);
         } else if let Parameter::Byte(nn) = parameters[1] {
-            0x6 << 12 | (x as u16) << 8 | nn as u16
-        } else {
-            panic!("LD V[n] second parameter must be V[n], DT or Byte");
+            return Ok(0x6 << 12 | (x as u16) << 8 | nn as u16);
         }
+
+        return Err("LD V[n] second parameter must be V[n], DT or Byte".to_owned());
     } else if let Parameter::Register(Register::I) = parameters[0] {
         if let Parameter::Address(nnn) = parameters[1] {
-            0xA << 12 | nnn
-        } else {
-            panic!("LD I second parameter must be Address")
+            return Ok(0xA << 12 | nnn);
         }
+        return Err("LD I second parameter must be Address".to_owned());
     } else if let Parameter::Register(Register::DT) = parameters[0] {
         if let Parameter::Register(Register::V(x)) = parameters[1] {
-            0xF << 12 | (x as u16) << 8 | 0x15
-        } else {
-            panic!("LD DT second parameter must be V[n]");
+            return Ok(0xF << 12 | (x as u16) << 8 | 0x15);
         }
+        return Err("LD DT second parameter must be V[n]".to_owned());
     } else if let Parameter::Register(Register::ST) = parameters[0] {
         if let Parameter::Register(Register::V(x)) = parameters[1] {
-            0xF << 12 | (x as u16) << 8 | 0x18
-        } else {
-            panic!("LD ST second parameter must be V[n]");
+            return Ok(0xF << 12 | (x as u16) << 8 | 0x18);
         }
-    } else {
-        panic!("LD first parameter must be V[n], I, DT or ST");
+        return Err("LD ST second parameter must be V[n]".to_owned());
     }
+    Err("LD first parameter must be V[n], I, DT or ST".to_owned())
 }
 
-fn generate_add(parameters: &[Parameter]) -> u16 {
+fn generate_add(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 2 {
-        panic!("ADD takes two parameters");
+        return Err("ADD takes two parameters".to_owned());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
         if let Parameter::Register(Register::V(y)) = parameters[1] {
-            0x8 << 12 | (x as u16) << 8 | (y as u16) << 4 | 0x4
+            return Ok(0x8 << 12 | (x as u16) << 8 | (y as u16) << 4 | 0x4);
         } else if let Parameter::Byte(nn) = parameters[1] {
-            0x7 << 12 | (x as u16) << 8 | nn as u16
-        } else {
-            panic!("ADD V[n] second parameter must be V[n] or Byte");
+            return Ok(0x7 << 12 | (x as u16) << 8 | nn as u16);
         }
+        return Err("ADD V[n] second parameter must be V[n] or Byte".to_owned());
     } else if let Parameter::Register(Register::I) = parameters[0] {
         if let Parameter::Register(Register::V(x)) = parameters[1] {
-            0xF << 12 | (x as u16) << 8 | 0x1E
-        } else {
-            panic!("ADD I second parameter must be V[n]");
+            return Ok(0xF << 12 | (x as u16) << 8 | 0x1E);
         }
-    } else {
-        panic!("ADD first parameter must be V[n] or I");
+        return Err("ADD I second parameter must be V[n]".to_owned());
     }
+    Err("ADD first parameter must be V[n] or I".to_owned())
 }
 
-fn generate_or(parameters: &[Parameter]) -> u16 {
+fn generate_or(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 2 {
-        panic!("OR takes two parameters");
+        return Err("OR takes two parameters".to_owned());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
         if let Parameter::Register(Register::V(y)) = parameters[1] {
-            0x8 << 12 | (x as u16) << 8 | (y as u16) << 4 | 0x1
-        } else {
-            panic!("OR second parameter must be V[n]")
+            return Ok(0x8 << 12 | (x as u16) << 8 | (y as u16) << 4 | 0x1);
         }
-    } else {
-        panic!("OR first parameter must be V[n]");
+        return Err("OR second parameter must be V[n]".to_owned());
     }
+    Err("OR first parameter must be V[n]".to_owned())
 }
 
-fn generate_and(parameters: &[Parameter]) -> u16 {
+fn generate_and(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 2 {
-        panic!("AND takes two parameters");
+        return Err("AND takes two parameters".to_owned());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
         if let Parameter::Register(Register::V(y)) = parameters[1] {
-            0x8 << 12 | (x as u16) << 8 | (y as u16) << 4 | 0x2
-        } else {
-            panic!("AND second parameter must be V[n]")
+            return Ok(0x8 << 12 | (x as u16) << 8 | (y as u16) << 4 | 0x2);
         }
-    } else {
-        panic!("AND first parameter must be V[n]");
+        return Err("AND second parameter must be V[n]".to_owned());
     }
+    Err("AND first parameter must be V[n]".to_owned())
 }
 
-fn generate_xor(parameters: &[Parameter]) -> u16 {
+fn generate_xor(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 2 {
-        panic!("XOR takes two parameters");
+        return Err("XOR takes two parameters".to_owned());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
         if let Parameter::Register(Register::V(y)) = parameters[1] {
-            0x8 << 12 | (x as u16) << 8 | (y as u16) << 4 | 0x3
-        } else {
-            panic!("XOR second parameter must be V[n]")
+            return Ok(0x8 << 12 | (x as u16) << 8 | (y as u16) << 4 | 0x3);
         }
-    } else {
-        panic!("XOR first parameter must be V[n]");
+        return Err("XOR second parameter must be V[n]".to_string());
     }
+    Err("XOR first parameter must be V[n]".to_string())
 }
 
-fn generate_sub(parameters: &[Parameter]) -> u16 {
+fn generate_sub(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 2 {
-        panic!("SUB takes two parameters");
+        return Err("SUB takes two parameters".to_owned());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
         if let Parameter::Register(Register::V(y)) = parameters[1] {
-            0x8 << 12 | (x as u16) << 8 | (y as u16) << 4 | 0x5
-        } else {
-            panic!("SUB second parameter must be V[n]")
+            return Ok(0x8 << 12 | (x as u16) << 8 | (y as u16) << 4 | 0x5);
         }
-    } else {
-        panic!("SUB first parameter must be V[n]");
+        return Err("SUB second parameter must be V[n]".to_owned());
     }
+    Err("SUB first parameter must be V[n]".to_owned())
 }
 
-fn generate_shr(parameters: &[Parameter]) -> u16 {
+fn generate_shr(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 2 {
-        panic!("SHR takes two parameters");
+        return Err("SHR takes two parameters".to_owned());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
         if let Parameter::Register(Register::V(y)) = parameters[1] {
-            0x8 << 12 | (x as u16) << 8 | (y as u16) << 4 | 0x6
-        } else {
-            panic!("SHR second parameter must be V[n]")
+            return Ok(0x8 << 12 | (x as u16) << 8 | (y as u16) << 4 | 0x6);
         }
-    } else {
-        panic!("SHR first parameter must be V[n]");
+        return Err("SHR second parameter must be V[n]".to_owned());
     }
+    Err("SHR first parameter must be V[n]".to_owned())
 }
 
-fn generate_subn(parameters: &[Parameter]) -> u16 {
+fn generate_subn(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 2 {
-        panic!("SUBN takes two parameters");
+        return Err("SUBN takes two parameters".to_owned());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
         if let Parameter::Register(Register::V(y)) = parameters[1] {
-            0x8 << 12 | (x as u16) << 8 | (y as u16) << 4 | 0x7
-        } else {
-            panic!("SUBN second parameter must be V[n]")
+            return Ok(0x8 << 12 | (x as u16) << 8 | (y as u16) << 4 | 0x7);
         }
-    } else {
-        panic!("SUBN first parameter must be V[n]");
+        return Err("SUBN second parameter must be V[n]".to_owned());
     }
+    Err("SUBN first parameter must be V[n]".to_owned())
 }
 
-fn generate_shl(parameters: &[Parameter]) -> u16 {
+fn generate_shl(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 2 {
-        panic!("SHL takes two parameters");
+        return Err("SHL takes two parameters".to_owned());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
         if let Parameter::Register(Register::V(y)) = parameters[1] {
-            0x8 << 12 | (x as u16) << 8 | (y as u16) << 4 | 0xE
-        } else {
-            panic!("SHL second parameter must be V[n]")
+            return Ok(0x8 << 12 | (x as u16) << 8 | (y as u16) << 4 | 0xE);
         }
-    } else {
-        panic!("SHL first parameter must be V[n]");
+        return Err("SHL second parameter must be V[n]".to_owned());
     }
+    Err("SHL first parameter must be V[n]".to_owned())
 }
 
-fn generate_jmpo(parameters: &[Parameter]) -> u16 {
+fn generate_jmpo(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 1 {
-        panic!("JMPO takes one parameter");
+        return Err("JMPO takes one parameter".to_owned());
     }
 
     if let Parameter::Address(nnn) = parameters[0] {
-        0xB << 12 | nnn
-    } else {
-        panic!("JMPO first parameter must be an Address");
+        return Ok(0xB << 12 | nnn);
     }
+    Err("JMPO first parameter must be an Address".to_string())
 }
 
-fn generate_rnd(parameters: &[Parameter]) -> u16 {
+fn generate_rnd(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 2 {
-        panic!("RND takes two parameters");
+        return Err("RND takes two parameters".to_string());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
         if let Parameter::Byte(nn) = parameters[1] {
-            0xC << 12 | (x as u16) << 8 | nn as u16
-        } else {
-            panic!("RND second parameter must be a Byte");
+            return Ok(0xC << 12 | (x as u16) << 8 | nn as u16);
         }
-    } else {
-        panic!("RND first parameter must be V[n]");
+        return Err("RND second parameter must be a Byte".to_string());
     }
+    Err("RND first parameter must be V[n]".to_string())
 }
 
-fn generate_drw(parameters: &[Parameter]) -> u16 {
+fn generate_drw(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 3 {
-        panic!("DRW takes three parameters");
+        return Err("DRW takes three parameters".to_owned());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
         if let Parameter::Register(Register::V(y)) = parameters[1] {
             if let Parameter::Nibble(n) = parameters[2] {
-                0xD << 12 | (x as u16) << 8 | (y as u16) << 4 | n as u16
-            } else {
-                panic!("DRW third parameter must be a Nibble");
+                return Ok(0xD << 12 | (x as u16) << 8 | (y as u16) << 4 | n as u16);
             }
-        } else {
-            panic!("DRW second parameter must be V[n]");
+            return Err("DRW third parameter must be a Nibble".to_string());
         }
-    } else {
-        panic!("DRW first parameter must be V[n]");
+        return Err("DRW second parameter must be V[n]".to_string());
     }
+    Err("DRW first parameter must be V[n]".to_string())
 }
 
-fn generate_skp(parameters: &[Parameter]) -> u16 {
+fn generate_skp(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 1 {
-        panic!("SKP takes one parameter");
+        return Err("SKP takes one parameter".to_owned());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
-        0xE << 12 | (x as u16) << 8 | 0x9E
-    } else {
-        panic!("SKP first parameter must be V[n]");
+        return Ok(0xE << 12 | (x as u16) << 8 | 0x9E);
     }
+    Err("SKP first parameter must be V[n]".to_owned())
 }
 
-fn generate_sknp(parameters: &[Parameter]) -> u16 {
+fn generate_sknp(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 1 {
-        panic!("SKNP takes one parameter");
+        return Err("SKNP takes one parameter".to_string());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
-        0xE << 12 | (x as u16) << 8 | 0xA1
-    } else {
-        panic!("SKNP first parameter must be V[n]");
+        return Ok(0xE << 12 | (x as u16) << 8 | 0xA1);
     }
+    Err("SKNP first parameter must be V[n]".to_string())
 }
 
-fn generate_ldk(parameters: &[Parameter]) -> u16 {
+fn generate_ldk(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 1 {
-        panic!("LDK takes one parameter");
+        return Err("LDK takes one parameter".to_string());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
-        0xF << 12 | (x as u16) << 8 | 0x0A
-    } else {
-        panic!("LDK first parameter must be V[n]");
+        return Ok(0xF << 12 | (x as u16) << 8 | 0x0A);
     }
+    Err("LDK first parameter must be V[n]".to_string())
 }
 
-fn generate_spr(parameters: &[Parameter]) -> u16 {
+fn generate_spr(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 1 {
-        panic!("SPR takes one parameter");
+        return Err("SPR takes one parameter".to_string());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
-        0xF << 12 | (x as u16) << 8 | 0x29
-    } else {
-        panic!("SPR first parameter must be V[n]");
+        return Ok(0xF << 12 | (x as u16) << 8 | 0x29);
     }
+    Err("SPR first parameter must be V[n]".to_string())
 }
 
-fn generate_bcd(parameters: &[Parameter]) -> u16 {
+fn generate_bcd(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 1 {
-        panic!("BCD takes one parameter");
+        return Err("BCD takes one parameter".to_string());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
-        0xF << 12 | (x as u16) << 8 | 0x33
-    } else {
-        panic!("BCD first parameter must be V[n]");
+        return Ok(0xF << 12 | (x as u16) << 8 | 0x33);
     }
+    Err("BCD first parameter must be V[n]".to_string())
 }
 
-fn generate_stn(parameters: &[Parameter]) -> u16 {
+fn generate_stn(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 1 {
-        panic!("STN takes one parameter");
+        return Err("STN takes one parameter".to_string());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
-        0xF << 12 | (x as u16) << 8 | 0x55
-    } else {
-        panic!("STN first parameter must be V[n]");
+        return Ok(0xF << 12 | (x as u16) << 8 | 0x55);
     }
+    Err("STN first parameter must be V[n]".to_string())
 }
 
-fn generate_ldn(parameters: &[Parameter]) -> u16 {
+fn generate_ldn(parameters: &[Parameter]) -> Result<u16, String> {
     if parameters.len() != 1 {
-        panic!("LDN takes one parameter");
+        return Err("LDN takes one parameter".to_string());
     }
 
     if let Parameter::Register(Register::V(x)) = parameters[0] {
-        0xF << 12 | (x as u16) << 8 | 0x65
-    } else {
-        panic!("LDN first parameter must be V[n]");
+        return Ok(0xF << 12 | (x as u16) << 8 | 0x65);
     }
+    Err("LDN first parameter must be V[n]".to_string())
 }
 
-pub fn generate_instruction(instruction: &Instruction, parameters: &[Parameter]) -> u16 {
+pub fn generate_instruction(
+    instruction: &Instruction,
+    parameters: &[Parameter],
+) -> Result<u16, String> {
     match instruction {
         Instruction::Cls => generate_cls(parameters),
         Instruction::Ret => generate_ret(parameters),
