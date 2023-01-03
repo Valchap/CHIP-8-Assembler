@@ -22,7 +22,7 @@ pub fn parse(text: &str) -> Result<Vec<u16>, String> {
 }
 
 fn parse_line(line: &str) -> Result<Option<u16>, String> {
-    let mut words = line.split_whitespace();
+    let mut words = line.split(';').next().unwrap().split_whitespace();
 
     let mut parameters = Vec::<Parameter>::new();
 
